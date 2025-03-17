@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class User {
   String? id; //all nullable intially
   String? username;
@@ -49,5 +51,13 @@ class User {
       "created_at": createdAt,
       "updated_at": updatedAt,
     };
+  }
+
+  // Convert to JSON string for storage
+  String toJsonString() => jsonEncode(toJson());
+
+  // Create User object from stored JSON string
+  static User fromJsonString(String jsonString) {
+    return User.fromJson(jsonDecode(jsonString));
   }
 }

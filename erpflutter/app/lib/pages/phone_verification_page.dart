@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'dashboard.dart';
+import '../models/user.dart';
 
 class PhoneVerificationPage extends StatefulWidget {
-  final Map<String, dynamic> userData;
-
-  PhoneVerificationPage({required this.userData});
-
   @override
   _PhoneVerificationPageState createState() => _PhoneVerificationPageState();
 }
 
 class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
   final _formKey = GlobalKey<FormState>();
-  final AuthService _authService = AuthService(); // Instance of AuthService
-
+  final AuthService _authService = AuthService();
   String verificationCode = "";
   bool otpSent = false;
 
@@ -24,8 +21,18 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
   }
 
   void _sendOTP() async {
-    var response = await _authService.sendPhoneOTP(widget.userData['phone']);
-    if (!mounted) return; // Ensure widget is still in the tree
+    if (AuthService.currentUser?.phone == null ||
+        AuthService.currentUser!.phone!.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Phone number is missing!")));
+      return;
+    }
+
+    var response = await _authService.sendPhoneOTP(
+      AuthService.currentUser!.phone!,
+    );
+    if (!mounted) return;
 
     if (response is Map<String, dynamic> && response.isNotEmpty) {
       setState(() {
@@ -44,22 +51,21 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
   void _verifyPhone() async {
     if (_formKey.currentState!.validate()) {
       var response = await _authService.verifyPhoneOTP(
-        widget.userData['phone'],
+        AuthService.currentUser!.phone!,
         verificationCode,
       );
-      if (!mounted) return; // Ensure widget is still in the tree
+
+      if (!mounted) return;
 
       if (response is Map<String, dynamic> && response.isNotEmpty) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Phone verified successfully!")));
-        
-        Navigator.push(
+
+        Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => DashboardPage(userData: widget.userData),
-          ),
-        )
+          MaterialPageRoute(builder: (context) => DashboardPage()),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -78,7 +84,7 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context, widget.userData);
+            Navigator.pop(context);
           },
         ),
       ),
@@ -95,7 +101,7 @@ class _PhoneVerificationPageState extends State<PhoneVerificationPage> {
               ),
               SizedBox(height: 5),
               Text(
-                widget.userData['phone'],
+                AuthService.currentUser?.phone ?? "No phone number available",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 20),

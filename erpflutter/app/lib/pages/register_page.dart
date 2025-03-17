@@ -1,60 +1,100 @@
-import '../models/user.dart';
 import 'package:flutter/material.dart';
+import '../models/user.dart';
 import '../services/auth_service.dart';
 import 'email_verification_page.dart';
 
 class RegisterPage extends StatefulWidget {
+  final User? prefilledUser; // To retain user data when coming back
+
+  const RegisterPage({Key? key, this.prefilledUser}) : super(key: key);
+
   @override
   _RegisterPageState createState() => _RegisterPageState();
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  // GlobalKey to manage form state
   final _formKey = GlobalKey<FormState>();
 
-  // Variables to store input values
-  String? firstName;
-  String? lastName;
-  String? username;
-  String? email;
-  String? phone;
-  String password = "";
-  String password2 = "";
-  final String userType = "applicant"; // Default value
+  // Controllers for text fields
+  final TextEditingController firstNameController = TextEditingController();
+  final TextEditingController lastNameController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController password2Controller = TextEditingController();
 
-  AuthService authService = AuthService(); // Create an instance
+  final String userType = "applicant"; // Default value
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // If prefilledUser exists, populate the form
+    if (widget.prefilledUser != null) {
+      firstNameController.text = widget.prefilledUser!.firstName ?? "";
+      lastNameController.text = widget.prefilledUser!.lastName ?? "";
+      usernameController.text = widget.prefilledUser!.username ?? "";
+      emailController.text = widget.prefilledUser!.email ?? "";
+      phoneController.text = widget.prefilledUser!.phone ?? "";
+    }
+  }
 
   void _register() async {
     if (_formKey.currentState!.validate()) {
       User newUser = User(
-        firstName: firstName,
-        lastName: lastName,
-        username: username,
-        email: email,
-        phone: phone,
+        firstName: firstNameController.text,
+        lastName: lastNameController.text,
+        username: usernameController.text,
+        email: emailController.text,
+        phone: phoneController.text,
         userType: userType,
       );
 
-      // Call the register function with the User object and passwords
-      var response = await authService.register(newUser, password, password2);
-      if (!mounted) return; // Ensure widget is still in the tree
+      AuthService.currentUser = newUser; // Store globally
+
+      // Debugging: Print request details
+      debugPrint("📤 Sending POST request to register user...");
+      debugPrint("🔹 First Name: ${newUser.firstName}");
+      debugPrint("🔹 Last Name: ${newUser.lastName}");
+      debugPrint("🔹 Username: ${newUser.username}");
+      debugPrint("🔹 Email: ${newUser.email}");
+      debugPrint("🔹 Phone: ${newUser.phone}");
+      debugPrint("🔹 User Type: ${newUser.userType}");
+      debugPrint("🔹 Password: ${passwordController.text}");
+      debugPrint("🔹 Confirm Password: ${password2Controller.text}");
+
+      var response = await _authService.register(
+        newUser,
+        passwordController.text,
+        password2Controller.text,
+      );
+
+      // Debugging: Print response details
+      debugPrint("📥 Response received: $response");
+
+      if (!mounted) return;
 
       if (response is Map<String, dynamic> && response.isNotEmpty) {
-        // Check if response is not null
+        debugPrint(" Registration Successful!");
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Registration successful!")));
-        Navigator.push(
+
+        // Navigate to email verification & pass user data
+        Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (context) => EmailVerificationPage(userData: response),
-          ),
+          MaterialPageRoute(builder: (context) => EmailVerificationPage()),
         );
       } else {
+        debugPrint(" Registration Failed!");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Registration failed. Please try again.")),
         );
       }
+    } else {
+      debugPrint(" Form validation failed.");
     }
   }
 
@@ -69,58 +109,53 @@ class _RegisterPageState extends State<RegisterPage> {
           child: ListView(
             children: [
               TextFormField(
-                initialValue: firstName,
+                controller: firstNameController,
                 decoration: InputDecoration(labelText: "First Name"),
-                onChanged: (value) => setState(() => firstName = value),
                 validator:
                     (value) => value!.isEmpty ? "Enter first name" : null,
               ),
               TextFormField(
-                initialValue: lastName,
+                controller: lastNameController,
                 decoration: InputDecoration(labelText: "Last Name"),
-                onChanged: (value) => setState(() => lastName = value),
                 validator: (value) => value!.isEmpty ? "Enter last name" : null,
               ),
               TextFormField(
-                initialValue: username,
+                controller: usernameController,
                 decoration: InputDecoration(labelText: "Username"),
-                onChanged: (value) => setState(() => username = value),
                 validator: (value) => value!.isEmpty ? "Enter username" : null,
               ),
               TextFormField(
-                initialValue: email,
+                controller: emailController,
                 decoration: InputDecoration(labelText: "Email"),
-                onChanged: (value) => setState(() => email = value),
                 validator:
                     (value) =>
                         RegExp(
-                              r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}\$',
+                              r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$',
                             ).hasMatch(value!)
                             ? null
                             : "Enter a valid email",
               ),
               TextFormField(
-                initialValue: phone,
+                controller: phoneController,
                 decoration: InputDecoration(labelText: "Phone"),
-                onChanged: (value) => setState(() => phone = value),
                 validator:
                     (value) => value!.isEmpty ? "Enter phone number" : null,
               ),
               TextFormField(
+                controller: passwordController,
                 obscureText: true,
                 decoration: InputDecoration(labelText: "Password"),
-                onChanged: (value) => setState(() => password = value),
                 validator: (value) => value!.isEmpty ? "Enter password" : null,
               ),
               TextFormField(
+                controller: password2Controller,
                 obscureText: true,
                 decoration: InputDecoration(labelText: "Confirm Password"),
-                onChanged: (value) => setState(() => password2 = value),
                 validator:
                     (value) =>
                         value!.isEmpty
                             ? "Confirm password"
-                            : (value != password
+                            : (value != passwordController.text
                                 ? "Passwords do not match"
                                 : null),
               ),
