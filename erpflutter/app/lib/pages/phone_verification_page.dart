@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'dashboard.dart';
-import '../models/user.dart';
 
 class PhoneVerificationPage extends StatefulWidget {
   @override

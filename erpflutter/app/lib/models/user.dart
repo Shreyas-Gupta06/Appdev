@@ -1,15 +1,12 @@
-import 'dart:convert';
-
 class User {
-  String? id; //all nullable intially
+  String? id;
   String? username;
   String? firstName;
   String? lastName;
   String? email;
   String? phone;
   String? userType;
-  String? createdAt;
-  String? updatedAt;
+  bool signedIn; // New attribute
 
   User({
     this.id,
@@ -19,11 +16,9 @@ class User {
     this.email,
     this.phone,
     this.userType,
-    this.createdAt,
-    this.updatedAt,
+    this.signedIn = false, // Default: false
   });
 
-  // Convert JSON to User object
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'],
@@ -33,31 +28,20 @@ class User {
       email: json['email'],
       phone: json['phone'],
       userType: json['user_type'],
-      createdAt: json['created_at'],
-      updatedAt: json['updated_at'],
+      signedIn: json['signedIn'] ?? false, // Ensure it defaults to false
     );
   }
 
-  // Convert User object to JSON (for API requests)
   Map<String, dynamic> toJson() {
     return {
-      "id": id,
-      "username": username,
-      "first_name": firstName,
-      "last_name": lastName,
-      "email": email,
-      "phone": phone,
-      "user_type": userType,
-      "created_at": createdAt,
-      "updated_at": updatedAt,
+      'id': id,
+      'username': username,
+      'first_name': firstName,
+      'last_name': lastName,
+      'email': email,
+      'phone': phone,
+      'user_type': userType,
+      'signedIn': signedIn, // Include it in JSON
     };
-  }
-
-  // Convert to JSON string for storage
-  String toJsonString() => jsonEncode(toJson());
-
-  // Create User object from stored JSON string
-  static User fromJsonString(String jsonString) {
-    return User.fromJson(jsonDecode(jsonString));
   }
 }

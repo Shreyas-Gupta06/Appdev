@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import 'email_verification_page.dart';
 
 class RegisterPage extends StatefulWidget {
-  final User? prefilledUser; // To retain user data when coming back
-
-  const RegisterPage({Key? key, this.prefilledUser}) : super(key: key);
+  const RegisterPage({Key? key}) : super(key: key);
 
   @override
   _RegisterPageState createState() => _RegisterPageState();
@@ -15,7 +14,6 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers for text fields
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
@@ -24,20 +22,24 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController password2Controller = TextEditingController();
 
-  final String userType = "applicant"; // Default value
   final AuthService _authService = AuthService();
+  final String userType = "applicant"; // Default user type
+
+  String errorMessage = ""; // Store error message globally
 
   @override
   void initState() {
     super.initState();
+    _loadUserData(); // Load user data if exists
+  }
 
-    // If prefilledUser exists, populate the form
-    if (widget.prefilledUser != null) {
-      firstNameController.text = widget.prefilledUser!.firstName ?? "";
-      lastNameController.text = widget.prefilledUser!.lastName ?? "";
-      usernameController.text = widget.prefilledUser!.username ?? "";
-      emailController.text = widget.prefilledUser!.email ?? "";
-      phoneController.text = widget.prefilledUser!.phone ?? "";
+  void _loadUserData() {
+    if (AuthService.currentUser != null) {
+      firstNameController.text = AuthService.currentUser!.firstName ?? "";
+      lastNameController.text = AuthService.currentUser!.lastName ?? "";
+      usernameController.text = AuthService.currentUser!.username ?? "";
+      emailController.text = AuthService.currentUser!.email ?? "";
+      phoneController.text = AuthService.currentUser!.phone ?? "";
     }
   }
 
@@ -52,18 +54,7 @@ class _RegisterPageState extends State<RegisterPage> {
         userType: userType,
       );
 
-      AuthService.currentUser = newUser; // Store globally
-
-      // Debugging: Print request details
-      debugPrint("📤 Sending POST request to register user...");
-      debugPrint("🔹 First Name: ${newUser.firstName}");
-      debugPrint("🔹 Last Name: ${newUser.lastName}");
-      debugPrint("🔹 Username: ${newUser.username}");
-      debugPrint("🔹 Email: ${newUser.email}");
-      debugPrint("🔹 Phone: ${newUser.phone}");
-      debugPrint("🔹 User Type: ${newUser.userType}");
-      debugPrint("🔹 Password: ${passwordController.text}");
-      debugPrint("🔹 Confirm Password: ${password2Controller.text}");
+      AuthService.currentUser = newUser; // Save user info
 
       var response = await _authService.register(
         newUser,
@@ -71,105 +62,161 @@ class _RegisterPageState extends State<RegisterPage> {
         password2Controller.text,
       );
 
-      // Debugging: Print response details
-      debugPrint("📥 Response received: $response");
-
       if (!mounted) return;
 
-      if (response is Map<String, dynamic> && response.isNotEmpty) {
-        debugPrint(" Registration Successful!");
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Registration successful!")));
+      String responseString = response.toString().toLowerCase();
+      if (!responseString.contains("error")) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Registration successful!"),
+            backgroundColor: Colors.green,
+          ),
+        );
 
-        // Navigate to email verification & pass user data
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => EmailVerificationPage()),
         );
       } else {
-        debugPrint(" Registration Failed!");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Registration failed. Please try again.")),
-        );
+        _handleErrors(responseString);
       }
-    } else {
-      debugPrint(" Form validation failed.");
     }
+  }
+
+  void _handleErrors(String error) {
+    setState(() {
+      errorMessage = error.replaceAll(RegExp(r'[\[\]]'), '').trim();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Register")),
+      backgroundColor: Colors.white, // Keep it clean
+      appBar: AppBar(
+        title: Text("Register"),
+        backgroundColor: Colors.purple,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: Padding(
         padding: EdgeInsets.all(20.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              TextFormField(
-                controller: firstNameController,
-                decoration: InputDecoration(labelText: "First Name"),
-                validator:
-                    (value) => value!.isEmpty ? "Enter first name" : null,
-              ),
-              TextFormField(
-                controller: lastNameController,
-                decoration: InputDecoration(labelText: "Last Name"),
-                validator: (value) => value!.isEmpty ? "Enter last name" : null,
-              ),
-              TextFormField(
-                controller: usernameController,
-                decoration: InputDecoration(labelText: "Username"),
-                validator: (value) => value!.isEmpty ? "Enter username" : null,
-              ),
-              TextFormField(
-                controller: emailController,
-                decoration: InputDecoration(labelText: "Email"),
-                validator:
-                    (value) =>
-                        RegExp(
-                              r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$',
-                            ).hasMatch(value!)
-                            ? null
-                            : "Enter a valid email",
-              ),
-              TextFormField(
-                controller: phoneController,
-                decoration: InputDecoration(labelText: "Phone"),
-                validator:
-                    (value) => value!.isEmpty ? "Enter phone number" : null,
-              ),
-              TextFormField(
-                controller: passwordController,
+              _buildTextField(firstNameController, "First Name"),
+              _buildTextField(lastNameController, "Last Name"),
+              _buildTextField(usernameController, "Username"),
+              _buildTextField(emailController, "Email", email: true),
+              _buildTextField(phoneController, "Phone", phone: true),
+              _buildTextField(
+                passwordController,
+                "Password",
                 obscureText: true,
-                decoration: InputDecoration(labelText: "Password"),
-                validator: (value) => value!.isEmpty ? "Enter password" : null,
               ),
-              TextFormField(
-                controller: password2Controller,
+              _buildTextField(
+                password2Controller,
+                "Confirm Password",
                 obscureText: true,
-                decoration: InputDecoration(labelText: "Confirm Password"),
-                validator:
-                    (value) =>
-                        value!.isEmpty
-                            ? "Confirm password"
-                            : (value != passwordController.text
-                                ? "Passwords do not match"
-                                : null),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 10),
+
+              if (errorMessage.isNotEmpty) _buildErrorBox(errorMessage),
+
               ElevatedButton(
                 onPressed: _register,
                 child: Text("Register"),
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple, // Button color
+                  foregroundColor: Colors.white, // Text color
                   minimumSize: Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label, {
+    bool obscureText = false,
+    bool email = false,
+    bool phone = false,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8.0),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.purple),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.purple.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.purple, width: 2),
+          ),
+          filled: true,
+          fillColor: Colors.purple.shade50,
+        ),
+        obscureText: obscureText,
+        keyboardType:
+            phone
+                ? TextInputType.phone
+                : (email ? TextInputType.emailAddress : TextInputType.text),
+        inputFormatters: phone ? [FilteringTextInputFormatter.digitsOnly] : [],
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return "Enter $label";
+          }
+          if (email &&
+              !RegExp(
+                r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$',
+              ).hasMatch(value)) {
+            return "Enter a valid email";
+          }
+          if (phone && !RegExp(r'^\d{10}$').hasMatch(value)) {
+            return "Enter a valid 10-digit phone number";
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  Widget _buildErrorBox(String errorMessage) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      margin: EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.purple.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.purple.shade300),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.error_outline, color: Colors.purple),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              errorMessage,
+              style: TextStyle(
+                color: Colors.purple.shade900,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
