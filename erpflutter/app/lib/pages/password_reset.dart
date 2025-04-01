@@ -69,7 +69,10 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Reset Password")),
+      appBar: AppBar(
+        title: Text("Reset Password"),
+        backgroundColor: Colors.purple,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -77,7 +80,12 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
           children: [
             TextField(
               onChanged: (value) => _email = value,
-              decoration: InputDecoration(labelText: "Enter your email"),
+              decoration: InputDecoration(
+                labelText: "Enter your email",
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.purple),
+                ),
+              ),
             ),
             SizedBox(height: 20),
             _otpSent
@@ -85,7 +93,12 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
                   children: [
                     TextField(
                       onChanged: (value) => _otp = value,
-                      decoration: InputDecoration(labelText: "Enter OTP"),
+                      decoration: InputDecoration(
+                        labelText: "Enter OTP",
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.purple),
+                        ),
+                      ),
                     ),
                     SizedBox(height: 20),
                     TextField(
@@ -93,6 +106,9 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
                       obscureText: true,
                       decoration: InputDecoration(
                         labelText: "Enter new password",
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.purple),
+                        ),
                       ),
                     ),
                     SizedBox(height: 20),
@@ -100,6 +116,9 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
                         ? CircularProgressIndicator()
                         : ElevatedButton(
                           onPressed: _resetPassword,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple,
+                          ),
                           child: Text("Reset Password"),
                         ),
                   ],
@@ -108,7 +127,13 @@ class _PasswordResetPageState extends State<PasswordResetPage> {
                 ? CircularProgressIndicator()
                 : ElevatedButton(
                   onPressed: _sendResetOTP,
-                  child: Text("Send OTP"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                  ),
+                  child: Text(
+                    "Send OTP",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
           ],
         ),

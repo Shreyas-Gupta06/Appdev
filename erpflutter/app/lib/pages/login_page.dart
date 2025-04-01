@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'dashboard.dart';
 import 'password_reset.dart';
 import '../services/auth_service.dart';
-import '../models/user.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -21,42 +20,34 @@ class _LoginPageState extends State<LoginPage> {
   String _password = "";
   String _errorMessage = "";
 
-  final Color primaryColor = Colors.deepPurple; // Purple theme color
+  final Color primaryColor = Colors.deepPurple;
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
-      _errorMessage = ""; // Clear error message before login attempt
+      _errorMessage = "";
     });
 
+    print("🔍 Attempting login with username: $_username");
+    print("📢 Calling AuthService login function...");
     final response = await authService.login(_username, _password);
+    print("🔥 After calling login API...");
 
     setState(() {
       _isLoading = false;
     });
 
-    if (response.containsKey("access")) {
-      String accessToken = response['access'];
-      String refreshToken = response['refresh'];
-      Map<String, dynamic> userData = response['user'];
+    print("📩 Login response: $response");
 
-      // Save tokens securely
-      await storage.write(key: "access_token", value: accessToken);
-      await storage.write(key: "refresh_token", value: refreshToken);
-      await storage.write(key: "user_data", value: jsonEncode(userData));
-
-      // ✅ Set current user
-      AuthService.currentUser = User(
-        id: userData['id'] ?? 0,
-        username: userData['username'] ?? "",
-        firstName: userData['first_name'] ?? "",
-        lastName: userData['last_name'] ?? "",
-        email: userData['email'] ?? "",
-        phone: userData['phone'] ?? "",
-        userType: userData['user_type'] ?? "applicant",
-        signedIn: true,
+    String responseString = response.toString().toLowerCase();
+    if (!responseString.contains("error")) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Login successful!"),
+          backgroundColor: Colors.green,
+        ),
       );
 
       Navigator.pushReplacement(
@@ -64,16 +55,20 @@ class _LoginPageState extends State<LoginPage> {
         MaterialPageRoute(builder: (context) => DashboardPage()),
       );
     } else {
-      setState(() {
-        _errorMessage = "Invalid username or password.";
-      });
+      _handleErrors(responseString);
     }
+  }
+
+  void _handleErrors(String error) {
+    setState(() {
+      _errorMessage = error.replaceAll(RegExp(r'[\[\]]'), '').trim();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Background color
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text("Login", style: TextStyle(color: primaryColor)),
         elevation: 0,

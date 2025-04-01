@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'pages/home.dart';
 import 'pages/dashboard.dart';
+import 'pages/email_verification_page.dart';
+import 'pages/phone_verification_page.dart';
+import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,29 +13,33 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  final FlutterSecureStorage storage = FlutterSecureStorage();
-  final String baseUrl = "http://srijansahay05.in/api/users/";
+  final AuthService authService = AuthService();
 
   Future<Widget> _checkAuthStatus() async {
-    String? refreshToken = await storage.read(key: "refresh_token");
-    if (refreshToken == null) {
+    print("🔍 Fetching user data...");
+    await authService.getUserData();
+
+    if (AuthService.currentUser == null) {
+      print("🚪 No user found. Redirecting to HomePage.");
       return HomePage();
     }
 
-    final response = await http.post(
-      Uri.parse("${baseUrl}token/refresh/"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"refresh": refreshToken}),
-    );
+    print("👤 User found: ${AuthService.currentUser!.email}");
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      await storage.write(key: "access_token", value: data['access']);
-      return DashboardPage();
-    } else {
-      await storage.deleteAll();
-      return HomePage();
+    if (!AuthService.currentUser!.emailVerified) {
+      print("📧 Email not verified. Redirecting to EmailVerificationPage.");
+      return EmailVerificationPage();
     }
+
+    print("✅ Email verified.");
+
+    if (!AuthService.currentUser!.phoneVerified) {
+      print("📞 Phone not verified. Redirecting to PhoneVerificationPage.");
+      return PhoneVerificationPage();
+    }
+
+    print("✅ Phone verified. Redirecting to Dashboard.");
+    return DashboardPage();
   }
 
   @override

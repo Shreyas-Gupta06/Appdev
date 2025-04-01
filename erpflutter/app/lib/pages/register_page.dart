@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 import 'email_verification_page.dart';
+import 'home.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -87,6 +89,15 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() {
       errorMessage = error.replaceAll(RegExp(r'[\[\]]'), '').trim();
     });
+
+    // Remove the error message after 3 seconds
+    Timer(Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          errorMessage = "";
+        });
+      }
+    });
   }
 
   @override
@@ -98,6 +109,15 @@ class _RegisterPageState extends State<RegisterPage> {
         backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()),
+            );
+          },
+        ),
       ),
       body: Padding(
         padding: EdgeInsets.all(20.0),

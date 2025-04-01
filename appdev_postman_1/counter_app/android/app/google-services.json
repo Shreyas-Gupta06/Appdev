@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "130075632131",
+    "project_id": "postman-appdev",
+    "storage_bucket": "postman-appdev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:130075632131:android:0429016fb26430ce6c6436",
+        "android_client_info": {
+          "package_name": "com.example.counter_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "130075632131-mghe0efcurf0bsv59riu23qtg58ervqs.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.counter_app",
+            "certificate_hash": "f6b645a32ce582ff9bb3c5952dcefd9e789f5b88"
+          }
+        },
+        {
+          "client_id": "130075632131-lkcobu3le8svhn8s0j1i1h8naq3bv7st.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyApvkwi1j9KJwt_oXQ-rwzyk3aGn1ZNGvs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "130075632131-lkcobu3le8svhn8s0j1i1h8naq3bv7st.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "130075632131-lstqvdi6luhbagqu19o8hue3hbba2rou.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.counterApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

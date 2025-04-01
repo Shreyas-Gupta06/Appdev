@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'register_page.dart';
 import 'phone_verification_page.dart';
+import 'home.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert';
 
 class EmailVerificationPage extends StatefulWidget {
   @override
@@ -13,77 +16,87 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
   final AuthService _authService = AuthService();
   String verificationCode = "";
   bool otpSent = false;
-  String? errorMessage; // Stores persistent error messages
+  String? errorMessage;
 
   @override
   void initState() {
     super.initState();
+    _fetchUserDataAndVerifyEmail();
+  }
+
+  final FlutterSecureStorage storage = FlutterSecureStorage();
+
+  void _fetchUserDataAndVerifyEmail() async {
+    await _authService.getUserData(); // Fetch latest user data
+    if (AuthService.currentUser?.email == null ||
+        AuthService.currentUser!.email!.isEmpty) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => HomePage(
+                errorMessage: "Error: Email is missing! Please register again.",
+              ),
+        ),
+      );
+      return;
+    }
     _sendOTP();
   }
 
   void _sendOTP() async {
-    if (AuthService.currentUser?.email == null ||
-        AuthService.currentUser!.email!.isEmpty) {
-      setState(() {
-        errorMessage = "Email is missing!";
-      });
-      return;
-    }
-
     print("📨 Sending OTP to: ${AuthService.currentUser!.email!}");
 
     var response = await _authService.sendEmailOTP(
       AuthService.currentUser!.email!,
     );
 
-    print("🔍 OTP API Response: $response");
-
     if (!mounted) return;
 
-    String responseString = response.toString().toLowerCase();
-
     setState(() {
-      if (responseString.contains("error")) {
-        errorMessage = responseString;
-      } else if (response is Map<String, dynamic> && response.isNotEmpty) {
-        otpSent = true;
-        errorMessage = null; // Clear previous errors on success
+      if (response.toString().toLowerCase().contains("error")) {
+        errorMessage = response.toString();
       } else {
-        errorMessage = "Failed to send OTP. Try again.";
+        otpSent = true;
+        errorMessage = null;
       }
     });
   }
 
   void _verifyEmail() async {
     if (_formKey.currentState!.validate()) {
-      print(
-        "✅ Verifying OTP: $verificationCode for ${AuthService.currentUser!.email}",
-      );
-
       var response = await _authService.verifyEmailOTP(
         AuthService.currentUser!.email!,
         verificationCode,
       );
 
-      print("🔍 OTP Verification Response: $response");
-
       if (!mounted) return;
 
-      String responseString = response.toString().toLowerCase();
+      if (response.toString().toLowerCase().contains("error")) {
+        setState(() {
+          errorMessage = response.toString();
+        });
+      } else {
+        AuthService.currentUser!.emailVerified = true;
 
-      setState(() {
-        if (responseString.contains("error")) {
-          errorMessage = responseString;
-        } else if (response is Map<String, dynamic> && response.isNotEmpty) {
-          errorMessage = null; // Clear errors on success
+        // ✅ Perform async work outside setState()
+        await storage.write(
+          key: "user_data",
+          value: jsonEncode(AuthService.currentUser),
+        );
+
+        if (!mounted) return;
+
+        // ✅ Navigate safely using Future.microtask()
+        Future.microtask(() {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => PhoneVerificationPage()),
           );
-        } else {
-          errorMessage = "Invalid verification code. Please try again.";
-        }
-      });
+        });
+
+        setState(() {}); // ✅ Only update the UI synchronously if needed
+      }
     }
   }
 
@@ -92,6 +105,9 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Email Verification"),
+        backgroundColor: Colors.purple,
+        foregroundColor: Colors.white,
+        elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
@@ -120,11 +136,9 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
               ),
               SizedBox(height: 20),
 
-              // Display the error message in a red box if an error exists
               if (errorMessage != null)
                 Container(
                   padding: EdgeInsets.all(10),
-                  margin: EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
                     color: Colors.red[100],
                     borderRadius: BorderRadius.circular(5),
@@ -146,7 +160,20 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
 
               if (otpSent) ...[
                 TextFormField(
-                  decoration: InputDecoration(labelText: "Verification Code"),
+                  decoration: InputDecoration(
+                    labelText: "Verification Code",
+                    labelStyle: TextStyle(color: Colors.purple),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.purple.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.purple, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: Colors.purple.shade50,
+                  ),
                   onChanged: (value) => verificationCode = value,
                   validator:
                       (value) =>
@@ -157,11 +184,22 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                   onPressed: _verifyEmail,
                   child: Text("Verify Email"),
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple, // Button color
+                    foregroundColor: Colors.white, // Text color
                     minimumSize: Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ],
-              TextButton(onPressed: _sendOTP, child: Text("Resend OTP")),
+              TextButton(
+                onPressed: _sendOTP,
+                child: Text("Resend OTP"),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.purple, // Text color
+                ),
+              ),
             ],
           ),
         ),

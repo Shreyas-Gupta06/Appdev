@@ -6,7 +6,9 @@ class User {
   String? email;
   String? phone;
   String? userType;
-  bool signedIn; // New attribute
+  bool signedIn;
+  bool emailVerified; // ✅ New field
+  bool phoneVerified; // New attribute
 
   User({
     this.id,
@@ -16,7 +18,9 @@ class User {
     this.email,
     this.phone,
     this.userType,
-    this.signedIn = false, // Default: false
+    this.signedIn = false,
+    this.emailVerified = false, // Default: false
+    this.phoneVerified = false, // Default: false
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -28,7 +32,7 @@ class User {
       email: json['email'],
       phone: json['phone'],
       userType: json['user_type'],
-      signedIn: json['signedIn'] ?? false, // Ensure it defaults to false
+      // signedIn: json['signedIn'] ?? false, // Ensure it defaults to false
     );
   }
 
@@ -41,7 +45,7 @@ class User {
       'email': email,
       'phone': phone,
       'user_type': userType,
-      'signedIn': signedIn, // Include it in JSON
+      // 'signedIn': signedIn, // Include it in JSON
     };
   }
 }

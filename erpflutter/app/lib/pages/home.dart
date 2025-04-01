@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'register_page.dart';
 import 'login_page.dart';
 
-class HomePage extends StatefulWidget {
-  @override
-  _HomePageState createState() => _HomePageState();
-}
+class HomePage extends StatelessWidget {
+  final String? errorMessage;
 
-class _HomePageState extends State<HomePage> {
+  HomePage({Key? key, this.errorMessage}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: Text("Home")),
       backgroundColor: Colors.white, // Keep background clean
       body: Center(
         child: Padding(
@@ -19,6 +19,28 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              if (errorMessage != null)
+                Container(
+                  padding: EdgeInsets.all(10),
+                  margin: EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.red[100],
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: Colors.red),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error, color: Colors.red),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          errorMessage!,
+                          style: TextStyle(color: Colors.red, fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               // College Logo
               Image.asset(
                 "static/college_logo.png",

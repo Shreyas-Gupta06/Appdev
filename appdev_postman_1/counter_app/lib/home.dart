@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'counter_model.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,13 +11,22 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   List<CounterModel> counters = [];
 
-  /// Add a new counter to the list
+  /// Fetch counters from Firestore using CounterModel's method
+  Future<void> loadCounters() async {
+    List<CounterModel> fetchedCounters =
+        await CounterModel.fetchCountersFromFirestore();
+    setState(() {
+      counters = fetchedCounters;
+    });
+  }
+
+  /// Add a new counter
   void _addNewCounter(CounterModel newCounter) async {
     await newCounter.getData(); // Fetch latest value from API
+
     setState(() {
       counters.add(newCounter);
     });
-    saveCounters(counters);
   }
 
   /// Update counter with a custom value
@@ -39,9 +47,10 @@ class HomePageState extends State<HomePage> {
                 onPressed: () async {
                   int? newValue = int.tryParse(customController.text);
                   if (newValue != null) {
-                    await counter.updateValue(newValue); // API call
+                    await counter.updateValue(
+                      newValue,
+                    ); // API call to update the value
                     setState(() {});
-                    saveCounters(counters);
                     if (dialogContext.mounted) {
                       Navigator.pop(dialogContext);
                     }
@@ -54,46 +63,41 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  //saving the counter data
-  Future<void> saveCounters(List<CounterModel> counters) async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> counterData =
-        counters
-            .map((c) => '${c.namespace},${c.key},${c.currentValue},${c.url}')
-            .toList();
-    await prefs.setStringList('counters', counterData);
-  }
-
-  //load counters from shared preferences
-  Future<void> loadCounters() async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String>? storedData = prefs.getStringList('counters');
-    if (storedData != null) {
-      setState(() {
-        counters =
-            storedData.map((data) {
-              List<String> parts = data.split(',');
-              return CounterModel(
-                namespace: parts[0],
-                key: parts[1],
-                currentValue: int.parse(parts[2]),
-                url: parts[3],
-              );
-            }).toList();
-      });
-    }
+  /// Show an error message using a SnackBar
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
   void initState() {
     super.initState();
-    loadCounters();
+    loadCounters(); // Load counters when the page loads
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Counters")),
+      appBar: AppBar(
+        title: Text("Counters"),
+        automaticallyImplyLeading: false, // Disable the back button
+        actions: [
+          IconButton(
+            icon: Icon(Icons.person),
+            onPressed: () {
+              Navigator.pushNamed(
+                context,
+                '/user',
+              ); // Navigate to the user page
+            },
+          ),
+        ],
+      ),
       body: ListView.builder(
         itemCount: counters.length,
         itemBuilder: (context, index) {
@@ -114,22 +118,49 @@ class HomePageState extends State<HomePage> {
                   IconButton(
                     icon: Icon(Icons.remove),
                     onPressed: () async {
-                      await counter.decrement();
-                      setState(() {});
-                      saveCounters(counters);
+                      try {
+                        await counter.decrement();
+                        setState(() {});
+                      } catch (e) {
+                        _showErrorMessage(e.toString());
+                      }
                     },
                   ),
                   IconButton(
                     icon: Icon(Icons.add),
                     onPressed: () async {
-                      await counter.increment();
-                      setState(() {});
-                      saveCounters(counters);
+                      try {
+                        await counter.increment();
+                        setState(() {});
+                      } catch (e) {
+                        _showErrorMessage(e.toString());
+                      }
                     },
                   ),
                   IconButton(
                     icon: Icon(Icons.edit),
-                    onPressed: () => _updateCustomValue(counter),
+                    onPressed: () async {
+                      try {
+                        _updateCustomValue(counter);
+                      } catch (e) {
+                        _showErrorMessage(e.toString());
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete, color: Colors.red),
+                    onPressed: () async {
+                      try {
+                        await counter.delete(); // Delete from Firestore
+                        setState(() {
+                          counters.removeAt(
+                            index,
+                          ); // Remove locally after deletion
+                        });
+                      } catch (e) {
+                        _showErrorMessage(e.toString());
+                      }
+                    },
                   ),
                 ],
               ),
